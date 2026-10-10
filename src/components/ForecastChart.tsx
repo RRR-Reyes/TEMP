@@ -33,7 +33,7 @@ export default function ForecastChart({ data, height = '360px' }: ForecastChartP
         paddingBottom: 10,
         paddingLeft: 0,
         paddingRight: 10,
-        background: am5.color(0xf7f4ec),
+        background: am5.Rectangle.new(root, { fill: am5.color(0xf7f4ec), fillOpacity: 1 }),
       } as any)
     );
 
