@@ -71,7 +71,11 @@ export default function RiskRadarMap({ selectedState, selectedCounty, callbacks 
         maxZoomLevel: 64,
         homeGeoPoint: { latitude: 38, longitude: -97 },
         homeZoomLevel: 3,
+        // Start facing the U.S. (rotation is the negative of 38°N, 97°W)
+        rotationX: 97,
+        rotationY: -38,
         wheelY: 'zoom',
+        doubleClickZoom: false,
       } as any)
     );
     chartRef.current = chart;
@@ -212,14 +216,35 @@ export default function RiskRadarMap({ selectedState, selectedCounty, callbacks 
 
     startRotation();
 
-    // Apply initial risk coloring
-    applyStateRiskColors();
+    // The county details panel slides in beside the map (and back out), which
+    // changes its size and leaves the view off-center. Re-fit once the size settles.
+    let resizeTimer: ReturnType<typeof setTimeout> | undefined;
+    const resizeObserver = new ResizeObserver(() => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        const countySeries = stateCountiesSeriesRef.current;
+        const fips = selectedCountyRef.current;
+        if (!countySeries) return;
+        if (currentViewLevelRef.current === 'county' && fips) {
+          const dataItem = countySeries.getDataItemById(fips);
+          if (dataItem) countySeries.zoomToDataItem(dataItem, true);
+        } else if (currentViewLevelRef.current === 'state' && countySeries.dataItems.length) {
+          countySeries.zoomToDataItems(countySeries.dataItems, true);
+        }
+      }, 250);
+    });
+    resizeObserver.observe(containerRef.current);
+
+    // Apply initial risk coloring once the state polygons have been built
+    usStatesSeries.events.once('geodataprocessed' as any, () => styleStatePolygons(null));
 
     if (callbacksRef.current.onReady) {
       callbacksRef.current.onReady();
     }
 
     return () => {
+      resizeObserver.disconnect();
+      clearTimeout(resizeTimer);
       if (rotationRef.current) {
         clearInterval(rotationRef.current);
         rotationRef.current = null;
@@ -233,46 +258,57 @@ export default function RiskRadarMap({ selectedState, selectedCounty, callbacks 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function applyStateRiskColors() {
-    const series = usStatesSeriesRef.current;
-    if (!series) return;
-    const data: any[] = [];
-    series.dataItems.forEach((di) => {
-      const id = di.get('id' as any) as string;
+  // Colors the county polygons by risk level. Styles the polygons directly
+  // (rather than replacing the series data, which would rebuild them).
+  function applyCountyRiskColors(series: am5map.MapPolygonSeries) {
+    series.mapPolygons.each((poly) => {
+      const id = poly.dataItem?.get('id' as any) as string;
       if (!id) return;
-      const riskLevel: RiskLevel = getCountyRiskLevel(id);
-      data.push({
-        id,
-        name: (di.dataContext as any)?.name,
-        settings: {
-          fill: am5.color(hexToNum(RISK_COLORS_FILL[riskLevel])),
-          fillOpacity: 0.55,
-        },
+      const isCountySelected = id === selectedCountyRef.current;
+      const riskLevel = getCountyRiskLevel(id);
+      poly.setAll({
+        fill: am5.color(isCountySelected ? 0xf7f4ec : hexToNum(RISK_COLORS_FILL[riskLevel])),
+        fillOpacity: isCountySelected ? 0.9 : 0.65,
+        stroke: am5.color(isCountySelected ? 0xf7f4ec : 0x8ba87a),
+        strokeWidth: isCountySelected ? 2 : 0.5,
       });
     });
-    series.data.setAll(data);
   }
 
-  function applyCountyRiskColors(series: am5map.MapPolygonSeries) {
-    const data: any[] = [];
-    series.dataItems.forEach((di) => {
-      const id = di.get('id' as any) as string;
-      if (!id) return;
-      const riskLevel = getCountyRiskLevel(id);
-      const name = (di.dataContext as any)?.name as string;
-      const isCountySelected = id === selectedCountyRef.current;
-      data.push({
-        id,
-        name,
-        settings: {
-          fill: am5.color(isCountySelected ? 0xf7f4ec : hexToNum(RISK_COLORS_FILL[riskLevel])),
-          fillOpacity: isCountySelected ? 0.9 : 0.65,
-          stroke: am5.color(isCountySelected ? 0xf7f4ec : 0x8ba87a),
-          strokeWidth: isCountySelected ? 2 : 0.5,
-        },
-      });
+  // Styles the US state polygons. With no selection every state gets its risk
+  // color; with a selection the other states are dimmed (still clickable) and
+  // the selected one is outlined.
+  function styleStatePolygons(selectedId: string | null) {
+    const series = usStatesSeriesRef.current;
+    if (!series) return;
+    series.mapPolygons.each((poly) => {
+      const polyId = poly.dataItem?.get('id' as any) as string;
+      if (!polyId) return;
+      const riskFill = am5.color(hexToNum(RISK_COLORS_FILL[getCountyRiskLevel(polyId)]));
+      poly.set('visible', true);
+      if (!selectedId) {
+        poly.setAll({
+          fill: riskFill,
+          fillOpacity: 0.55,
+          stroke: am5.color(0x8ba87a),
+          strokeWidth: 0.8,
+        });
+      } else if (polyId === selectedId) {
+        poly.setAll({
+          fill: am5.color(0x3d6b30),
+          fillOpacity: 0.3,
+          stroke: am5.color(0xf7f4ec),
+          strokeWidth: 1.5,
+        });
+      } else {
+        poly.setAll({
+          fill: riskFill,
+          fillOpacity: 0.25,
+          stroke: am5.color(0x8ba87a),
+          strokeWidth: 0.5,
+        });
+      }
     });
-    series.data.setAll(data);
   }
 
   const goToUSView = useCallback(() => {
@@ -281,9 +317,11 @@ export default function RiskRadarMap({ selectedState, selectedCounty, callbacks 
     currentViewLevelRef.current = 'us';
     stateCountiesSeriesRef.current?.set('visible', false);
     usStatesSeriesRef.current?.set('visible', true);
-    chart.animate({ key: 'rotationX', to: -97, duration: 1200, easing: am5.ease.inOut(am5.ease.cubic) });
-    chart.animate({ key: 'rotationY', to: 0, duration: 1200, easing: am5.ease.inOut(am5.ease.cubic) });
-    setTimeout(() => chart.goHome(), 100);
+    styleStatePolygons(null);
+    // Rotation is the negative of the point to face: center on 38°N, 97°W.
+    chart.animate({ key: 'rotationX', to: 97, duration: 1200, easing: am5.ease.inOut(am5.ease.cubic) });
+    chart.animate({ key: 'rotationY', to: -38, duration: 1200, easing: am5.ease.inOut(am5.ease.cubic) });
+    chart.zoomToGeoPoint({ latitude: 38, longitude: -97 }, 3, true, 1200);
   }, []);
 
   const goToStateView = useCallback(async (stateCode: string) => {
@@ -295,56 +333,41 @@ export default function RiskRadarMap({ selectedState, selectedCounty, callbacks 
     if (!stateId) return;
 
     const statesSeries = usStatesSeriesRef.current;
-    if (!statesSeries) return;
+    const countySeries = stateCountiesSeriesRef.current;
+    if (!statesSeries || !countySeries) return;
 
     const stateDataItem = statesSeries.getDataItemById(stateId);
     if (!stateDataItem) return;
 
-    const polygon = stateDataItem.get('mapPolygon');
-    if (!polygon) return;
+    // Highlight the selected state, dim the others, and bring it into view
+    // right away while the county data loads.
+    countySeries.set('visible', false);
+    statesSeries.set('visible', true);
+    styleStatePolygons(stateId);
+    statesSeries.zoomToDataItem(stateDataItem, true);
 
-    const centroid = polygon.geoCentroid();
-    if (!centroid) return;
-
-    // Highlight selected state, dim others
-    statesSeries.mapPolygons.each((poly) => {
-      const did = poly.dataItem;
-      const polyId = did?.get('id' as any) as string;
-      if (polyId === stateId) {
-        poly.setAll({
-          fill: am5.color(0x3d6b30),
-          fillOpacity: 0.3,
-          stroke: am5.color(0xf7f4ec),
-          strokeWidth: 1.5,
-        });
-      } else if (polyId) {
-        const riskLevel = getCountyRiskLevel(polyId);
-        poly.setAll({
-          fill: am5.color(hexToNum(RISK_COLORS_FILL[riskLevel])),
-          fillOpacity: 0.25,
-          stroke: am5.color(0x8ba87a),
-          strokeWidth: 0.5,
-        });
-      }
-    });
-
-    chart.animate({ key: 'rotationX', to: -centroid.longitude, duration: 1200, easing: am5.ease.inOut(am5.ease.cubic) });
-    chart.animate({ key: 'rotationY', to: -centroid.latitude, duration: 1200, easing: am5.ease.inOut(am5.ease.cubic) });
-
-    // Load county data
     try {
       const stateGeoData = await loadStateGeodata(stateCode);
 
-      const countySeries = stateCountiesSeriesRef.current;
-      if (countySeries) {
-        countySeries.set('visible', false);
-        countySeries.set('geodata' as any, stateGeoData);
-        countySeries.events.once('datavalidated', () => {
-          countySeries.set('visible', true);
-          applyCountyRiskColors(countySeries);
-          countySeries.zoomToDataItems({} as any);
-          usStatesSeriesRef.current?.set('visible', false);
-        });
+      // The user may have picked a different state while this one was loading.
+      if (selectedStateRef.current !== stateCode) return;
+
+      const showCounties = () => {
+        if (selectedStateRef.current !== stateCode) return;
+        countySeries.set('visible', true);
+        applyCountyRiskColors(countySeries);
+        // The counties replace the state's own polygon; neighbours stay dimmed.
+        stateDataItem.get('mapPolygon')?.set('visible', false);
+        if (!selectedCountyRef.current) {
+          countySeries.zoomToDataItems(countySeries.dataItems, true);
+        }
+      };
+
+      if (countySeries.get('geoJSON' as any) === stateGeoData) {
+        showCounties();
+      } else {
+        countySeries.events.once('geodataprocessed' as any, showCounties);
+        countySeries.set('geoJSON' as any, stateGeoData);
       }
     } catch (err) {
       console.error('Failed to load state geodata:', err);
@@ -361,15 +384,7 @@ export default function RiskRadarMap({ selectedState, selectedCounty, callbacks 
 
     const dataItem = countySeries.getDataItemById(fips);
     if (dataItem) {
-      const polygon = dataItem.get('mapPolygon');
-      if (polygon) {
-        const centroid = polygon.geoCentroid();
-        if (centroid) {
-          chart.animate({ key: 'rotationX', to: -centroid.longitude, duration: 800, easing: am5.ease.inOut(am5.ease.cubic) });
-          chart.animate({ key: 'rotationY', to: -centroid.latitude, duration: 800, easing: am5.ease.inOut(am5.ease.cubic) });
-        }
-      }
-      countySeries.zoomToDataItem(dataItem);
+      countySeries.zoomToDataItem(dataItem, true);
     }
   }, []);
 
@@ -394,7 +409,7 @@ export default function RiskRadarMap({ selectedState, selectedCounty, callbacks 
       const countySeries = stateCountiesSeriesRef.current;
       if (countySeries) {
         applyCountyRiskColors(countySeries);
-        countySeries.zoomToDataItems({} as any);
+        countySeries.zoomToDataItems(countySeries.dataItems, true);
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
