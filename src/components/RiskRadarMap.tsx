@@ -66,7 +66,7 @@ export default function RiskRadarMap({ selectedState, selectedCounty, callbacks 
         panX: 'rotateX',
         panY: 'rotateY',
         projection: am5map.geoOrthographic(),
-        background: am5.color(0x0a1a10),
+        background: am5.Rectangle.new(root, { fill: am5.color(0x0a1a10), fillOpacity: 1 }),
         minZoomLevel: 0.8,
         maxZoomLevel: 64,
         homeGeoPoint: { latitude: 38, longitude: -97 },

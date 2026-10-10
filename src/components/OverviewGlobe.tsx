@@ -33,7 +33,7 @@ export default function OverviewGlobe({ onUSClick, height = '500px' }: OverviewG
         panX: 'rotateX',
         panY: 'rotateY',
         projection: am5map.geoOrthographic(),
-        background: am5.color(0x0f2818),
+        background: am5.Rectangle.new(root, { fill: am5.color(0x0f2818), fillOpacity: 1 }),
         minZoomLevel: 0.8,
         maxZoomLevel: 8,
         homeGeoPoint: { latitude: 35, longitude: -98 },
