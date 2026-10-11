@@ -53,21 +53,21 @@ export default function SearchableSelect({
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1 w-full bg-forest-800 border border-forest-600 rounded-sm shadow-xl max-h-64 overflow-hidden">
+        <div className="absolute left-0 z-50 mt-1 w-max min-w-full max-w-[18rem] bg-forest-800 border border-forest-600 rounded-sm shadow-xl overflow-hidden">
           <div className="p-2 border-b border-forest-600">
-            <div className="flex items-center gap-2 px-2 py-1 bg-forest-900 rounded-sm">
-              <Search className="w-4 h-4 text-warmwhite/40" />
+            <div className="flex items-center gap-2 px-2 py-1 bg-forest-900 rounded-sm min-w-0">
+              <Search className="w-4 h-4 shrink-0 text-warmwhite/40" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search..."
-                className="flex-1 bg-transparent text-warmwhite text-sm outline-none placeholder:text-warmwhite/30"
+                className="flex-1 w-0 min-w-0 bg-transparent text-warmwhite text-sm outline-none placeholder:text-warmwhite/30"
                 autoFocus
               />
             </div>
           </div>
-          <div className="max-h-48 overflow-y-auto scrollbar-thin">
+          <div className="max-h-72 overflow-y-auto scrollbar-thin">
             {filtered.length === 0 ? (
               <div className="px-4 py-3 text-sm text-warmwhite/40">No results found</div>
             ) : (
@@ -80,12 +80,12 @@ export default function SearchableSelect({
                     setOpen(false);
                     setSearch('');
                   }}
-                  className={`w-full flex items-center justify-between px-4 py-2 text-sm transition-colors hover:bg-forest-700 ${
+                  className={`w-full flex items-center justify-between gap-3 px-4 py-2 text-left text-sm whitespace-nowrap transition-colors hover:bg-forest-700 ${
                     opt.value === value ? 'text-olive-300' : 'text-warmwhite/80'
                   }`}
                 >
-                  {opt.label}
-                  {opt.value === value && <Check className="w-4 h-4" />}
+                  <span>{opt.label}</span>
+                  {opt.value === value && <Check className="w-4 h-4 shrink-0" />}
                 </button>
               ))
             )}

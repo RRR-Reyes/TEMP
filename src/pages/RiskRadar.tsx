@@ -15,7 +15,7 @@ import SearchableSelect from '@/components/SearchableSelect';
 import CountyDetailsPanel from '@/components/CountyDetailsPanel';
 import { useSelection } from '@/context/SelectionContext';
 import { CONTIGUOUS_STATES, STATE_CODE_TO_NAME, getStateByCode } from '@/data/states';
-import { getCountyData, getCropOptions } from '@/data/demoData';
+import { getCountyData, getCropOptions, getCropLabel } from '@/data/demoData';
 import { loadStateGeodata } from '@/data/stateGeodata';
 import type { CountyData } from '@/types';
 
@@ -307,12 +307,15 @@ export default function RiskRadar() {
           <RiskRadarMap
             selectedState={selection.stateCode}
             selectedCounty={selection.countyFips}
+            crop={selection.crop}
             callbacks={callbacks}
           />
 
           {/* Legend overlay */}
           <div className="absolute bottom-4 left-4 z-10 bg-forest-900/90 backdrop-blur-sm border border-forest-700/40 rounded-sm px-4 py-3">
-            <p className="text-warmwhite/40 text-xs uppercase tracking-wider mb-2">Risk Level</p>
+            <p className="text-warmwhite/40 text-xs uppercase tracking-wider mb-2">
+              Risk Level · {getCropLabel(selection.crop)}
+            </p>
             <RiskLegend compact />
           </div>
 
