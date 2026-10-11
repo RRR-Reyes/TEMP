@@ -52,14 +52,19 @@ export default {
         },
       },
       fontFamily: {
-        serif: ['Georgia', 'Cambria', 'Times New Roman', 'serif'],
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['Fraunces', 'Georgia', 'serif'],
+        sans: ['Instrument Sans', 'system-ui', '-apple-system', 'sans-serif'],
+      },
+      transitionTimingFunction: {
+        // Decelerating curve: quick start, long soft landing
+        out: 'cubic-bezier(0.22, 1, 0.36, 1)',
       },
       animation: {
-        'fade-in': 'fadeIn 0.6s ease-out',
-        'fade-in-up': 'fadeInUp 0.7s ease-out',
-        'slide-in-right': 'slideInRight 0.4s ease-out',
+        'fade-in': 'fadeIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) both',
+        'fade-in-up': 'fadeInUp 1s cubic-bezier(0.22, 1, 0.36, 1) both',
+        'slide-in-right': 'slideInRight 0.7s cubic-bezier(0.22, 1, 0.36, 1) both',
         'slow-rotate': 'slowRotate 60s linear infinite',
+        'float': 'float 6s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {
@@ -77,6 +82,10 @@ export default {
         slowRotate: {
           '0%': { transform: 'rotate(0deg)' },
           '100%': { transform: 'rotate(360deg)' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-8px)' },
         },
       },
     },

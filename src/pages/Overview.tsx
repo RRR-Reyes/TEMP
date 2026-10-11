@@ -187,8 +187,10 @@ export default function Overview() {
             ].map((cap, idx) => (
               <div
                 key={cap.title}
-                className="group relative overflow-hidden rounded-sm bg-forest-800/50 border border-forest-700/40 hover:border-olive-500/40 transition-all"
-                style={{ animationDelay: `${idx * 150}ms` }}
+                className={`group relative overflow-hidden rounded-sm bg-forest-800/50 border border-forest-700/40 hover:border-olive-500/40 transition-colors duration-500 ${
+                  capabilitiesReveal.visible ? 'animate-fade-in-up' : 'opacity-0'
+                }`}
+                style={{ animationDelay: `${idx * 150 + 150}ms` }}
               >
                 <div className="aspect-[4/3] overflow-hidden">
                   <img
@@ -237,8 +239,14 @@ export default function Overview() {
                   { icon: AlertTriangle, label: 'Drought Conditions', desc: 'Plant stress and susceptibility' },
                   { icon: Waves, label: 'Soil Moisture', desc: 'Root health and water stress' },
                   { icon: ShieldCheck, label: 'Suitability Index', desc: 'Disease-specific environmental scoring' },
-                ].map((factor) => (
-                  <div key={factor.label} className="border border-forest-100 rounded-sm p-4 hover:border-olive-400 transition-colors">
+                ].map((factor, idx) => (
+                  <div
+                    key={factor.label}
+                    className={`border border-forest-100 rounded-sm p-4 hover:border-olive-400 hover:bg-olive-50/60 transition-colors duration-500 ${
+                      envReveal.visible ? 'animate-fade-in-up' : 'opacity-0'
+                    }`}
+                    style={{ animationDelay: `${idx * 90 + 200}ms` }}
+                  >
                     <factor.icon className="w-5 h-5 text-olive-600 mb-2" />
                     <p className="text-forest-900 font-medium text-sm">{factor.label}</p>
                     <p className="text-charcoal/50 text-xs mt-1">{factor.desc}</p>
@@ -391,8 +399,12 @@ export default function Overview() {
               { num: '01', icon: Eye, title: 'Observe', desc: 'Gather weather, forecast, and environmental information from across the contiguous United States.' },
               { num: '02', icon: Crosshair, title: 'Assess', desc: 'Evaluate conditions relevant to specific crops, pests, and diseases using environmental suitability models.' },
               { num: '03', icon: ShieldCheck, title: 'Prepare', desc: 'Explore future risk and review appropriate monitoring recommendations for your county.' },
-            ].map((step) => (
-              <div key={step.num} className="relative text-center">
+            ].map((step, idx) => (
+              <div
+                key={step.num}
+                className={`relative text-center ${howReveal.visible ? 'animate-fade-in-up' : 'opacity-0'}`}
+                style={{ animationDelay: `${idx * 180 + 150}ms` }}
+              >
                 <div className="relative inline-flex items-center justify-center w-24 h-24 rounded-full bg-forest-800 border-2 border-olive-500/30 mb-6">
                   <step.icon className="w-8 h-8 text-olive-300" />
                   <span className="absolute -top-2 -right-2 w-8 h-8 bg-olive-500 text-warmwhite text-xs font-bold rounded-full flex items-center justify-center">
