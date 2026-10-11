@@ -174,10 +174,29 @@ function pickTrend(rng: () => number): TrendDirection {
   return 'decreasing';
 }
 
-export function getCountyRiskLevel(fips: string): RiskLevel {
-  const rng = seededRandom(hashString(fips));
-  const index = Math.floor(rng() * 100);
-  return riskLevelFromIndex(index);
+const countyRiskCache = new Map<string, RiskLevel>();
+
+/**
+ * Overall risk for a county and crop. Uses the same generator as the county
+ * details panel, so the map color always matches the risk shown in the panel.
+ */
+export function getCountyRiskLevel(fips: string, crop: CropType = 'corn'): RiskLevel {
+  const key = `${fips}-${crop}`;
+  let level = countyRiskCache.get(key);
+  if (!level) {
+    level = getCountyData(fips, '', '', crop).overallRisk;
+    countyRiskCache.set(key, level);
+  }
+  return level;
+}
+
+/**
+ * Overall risk shown for a whole state and crop. This is simulated (there is
+ * no real data source yet): a stable value per state and crop.
+ */
+export function getStateRiskLevel(stateId: string, crop: CropType = 'corn'): RiskLevel {
+  const rng = seededRandom(hashString(`${stateId}-${crop}-state`));
+  return riskLevelFromIndex(Math.floor(rng() * 100));
 }
 
 export function getCountyData(
