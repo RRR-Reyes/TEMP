@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Instrument+Sans:wght@400..700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -9,7 +9,7 @@
     scroll-behavior: smooth;
   }
   body {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Instrument Sans', system-ui, sans-serif;
     background-color: #f7f4ec;
     color: #2a2a2a;
     -webkit-font-smoothing: antialiased;
@@ -19,7 +19,9 @@
 
 @layer utilities {
   .font-display {
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Fraunces', Georgia, serif;
+    font-optical-sizing: auto;
+    letter-spacing: -0.015em;
   }
   .text-balance {
     text-wrap: balance;
@@ -53,11 +55,23 @@
   transform: translateY(0);
 }
 
+/* Respect the OS "reduce motion" setting: keep the end state, drop the movement. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 .amcharts-tooltip {
   background: rgba(15, 40, 24, 0.95) !important;
   border-radius: 6px !important;
   color: #f7f4ec !important;
-  font-family: 'Inter', sans-serif !important;
+  font-family: 'Instrument Sans', sans-serif !important;
   font-size: 13px !important;
   padding: 8px 12px !important;
 }

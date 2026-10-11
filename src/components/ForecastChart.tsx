@@ -48,7 +48,7 @@ export default function ForecastChart({ data, height = '360px' }: ForecastChartP
     xAxis.get('renderer').labels.template.setAll({
       fill: am5.color(0x2a2a2a),
       fontSize: '13px',
-      fontFamily: 'Inter, sans-serif',
+      fontFamily: 'Instrument Sans, sans-serif',
     });
 
     xAxis.data.setAll(data);
@@ -64,7 +64,7 @@ export default function ForecastChart({ data, height = '360px' }: ForecastChartP
     yAxis.get('renderer').labels.template.setAll({
       fill: am5.color(0x666666),
       fontSize: '12px',
-      fontFamily: 'Inter, sans-serif',
+      fontFamily: 'Instrument Sans, sans-serif',
     });
 
     // Series - risk index line
@@ -150,7 +150,7 @@ export default function ForecastChart({ data, height = '360px' }: ForecastChartP
     legend.labels.template.setAll({
       fill: am5.color(0x666666),
       fontSize: '12px',
-      fontFamily: 'Inter, sans-serif',
+      fontFamily: 'Instrument Sans, sans-serif',
     });
     legend.data.setAll(chart.series.values);
 

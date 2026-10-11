@@ -27,6 +27,7 @@ interface RiskRadarMapProps {
 }
 
 const CONTIGUOUS_STATE_IDS = CONTIGUOUS_STATES.map((s) => s.id);
+const NON_CONTIGUOUS_STATE_IDS = ['US-AK', 'US-HI'];
 
 // The point the U.S. view is centered on (38°N, 97°W) and its zoom level.
 const US_CENTER = { latitude: 38, longitude: -97 };
@@ -94,6 +95,23 @@ export default function RiskRadarMap({ selectedState, selectedCounty, crop, call
       } as any)
     );
     worldSeries.mapPolygons.template.setAll({
+      fill: am5.color(0x2a2a2a),
+      stroke: am5.color(0x444444),
+      strokeWidth: 0.5,
+      strokeOpacity: 0.5,
+      fillOpacity: 0.7,
+      tooltipText: '{name}',
+    });
+
+    // Alaska and Hawaii, greyed out like the other countries. They are shown
+    // for context only; the risk data and clicks cover the contiguous U.S.
+    const nonContiguousSeries = chart.series.push(
+      am5map.MapPolygonSeries.new(root, {
+        geoJSON: usaLow as any,
+        include: NON_CONTIGUOUS_STATE_IDS,
+      } as any)
+    );
+    nonContiguousSeries.mapPolygons.template.setAll({
       fill: am5.color(0x2a2a2a),
       stroke: am5.color(0x444444),
       strokeWidth: 0.5,

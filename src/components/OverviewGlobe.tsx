@@ -11,17 +11,22 @@ interface OverviewGlobeProps {
   height?: string;
 }
 
+// Degrees of rotation per second while idle. Time-based, so the speed is the
+// same whatever the frame rate.
+const IDLE_SPIN_DEG_PER_SEC = 6;
+// How long after the user last interacted before idle spin resumes.
+const RESUME_AFTER_MS = 3000;
+
 export default function OverviewGlobe({ onUSClick, height = '500px' }: OverviewGlobeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const rotationRef = useRef<number | null>(null);
-  const userInteractingRef = useRef(false);
   const onUSClickRef = useRef(onUSClick);
   onUSClickRef.current = onUSClick;
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    const container = containerRef.current;
+    if (!container) return;
 
-    const root = am5.Root.new(containerRef.current);
+    const root = am5.Root.new(container);
 
     root.setThemes([
       am5themes_Animated.new(root),
@@ -128,42 +133,50 @@ export default function OverviewGlobe({ onUSClick, height = '500px' }: OverviewG
       zoomControl.homeButton.set('visible', true);
     }
 
-    // Auto rotation
-    let lastInteractionTime = 0;
+    // Idle spin. Runs on requestAnimationFrame with elapsed-time deltas, so the
+    // motion stays smooth at the display's refresh rate instead of stepping at
+    // a fixed 50ms interval.
+    let lastInteractionAt = 0;
+    let interacting = false;
+    let lastFrameAt = 0;
+    let frameId = 0;
 
-    const startRotation = () => {
-      if (rotationRef.current) return;
-      rotationRef.current = setInterval(() => {
-        if (!userInteractingRef.current && Date.now() - lastInteractionTime > 3000) {
-          chart.set('rotationX', (chart.get('rotationX') || 0) + 0.3);
-        }
-      }, 50) as unknown as number;
+    const spin = (now: number) => {
+      const dt = lastFrameAt ? now - lastFrameAt : 0;
+      lastFrameAt = now;
+      // Skip huge gaps (backgrounded tab) so the globe doesn't jump.
+      if (
+        dt > 0 &&
+        dt < 250 &&
+        !interacting &&
+        now - lastInteractionAt > RESUME_AFTER_MS
+      ) {
+        const next = ((chart.get('rotationX') as number) || 0) + (IDLE_SPIN_DEG_PER_SEC * dt) / 1000;
+        chart.set('rotationX', next);
+      }
+      frameId = requestAnimationFrame(spin);
+    };
+    frameId = requestAnimationFrame(spin);
+
+    const onPanStart = () => {
+      interacting = true;
+      lastInteractionAt = performance.now();
+    };
+    const onPanEnd = () => {
+      interacting = false;
+      lastInteractionAt = performance.now();
+    };
+    const onWheel = () => {
+      lastInteractionAt = performance.now();
     };
 
-    chart.events.on('panstarted' as any, () => {
-      userInteractingRef.current = true;
-      lastInteractionTime = Date.now();
-    });
-    chart.events.on('panended' as any, () => {
-      lastInteractionTime = Date.now();
-      userInteractingRef.current = false;
-    });
-
-    containerRef.current?.addEventListener('wheel', () => {
-      lastInteractionTime = Date.now();
-      userInteractingRef.current = true;
-      setTimeout(() => {
-        userInteractingRef.current = false;
-      }, 2000);
-    }, { passive: true });
-
-    startRotation();
+    chart.events.on('panstarted' as any, onPanStart);
+    chart.events.on('panended' as any, onPanEnd);
+    container.addEventListener('wheel', onWheel, { passive: true });
 
     return () => {
-      if (rotationRef.current) {
-        clearInterval(rotationRef.current);
-        rotationRef.current = null;
-      }
+      cancelAnimationFrame(frameId);
+      container.removeEventListener('wheel', onWheel);
       root.dispose();
     };
   }, []);
